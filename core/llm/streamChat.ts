@@ -1,8 +1,11 @@
 import { fetchwithRequestOptions } from "@continuedev/fetch";
 import { ChatMessage, IDE, PromptLog } from "..";
 import { ConfigHandler } from "../config/ConfigHandler";
+import { ShadowChatDb } from "../data/shadowChatDb";
 import { FromCoreProtocol, ToCoreProtocol } from "../protocol";
 import { IMessenger, Message } from "../protocol/messenger";
+import { deriveSessionId } from "../util/shadowChatSessionId";
+import { tokenOptimizedStreamChat } from "./tokenOptimizedChat";
 
 import { TTS } from "../util/tts";
 
@@ -112,12 +115,42 @@ export async function* llmStreamChat(
 
       return next.value;
     } else {
-      const gen = model.streamChat(
-        messages,
-        abortController.signal,
-        completionOptions,
-        messageOptions,
-      );
+      const ultraModeEnabled = config.ui?.ultraTokenSaving ?? false;
+      const historyLimit = 20;
+      const sessionId = deriveSessionId(messages);
+
+      // Guard against toggling Ultra Token Saving mid-conversation
+      if (messages.length > 1) {
+        const storedSession = await ShadowChatDb.getSession(sessionId);
+        if (storedSession && storedSession.ultraModeEnabled !== ultraModeEnabled) {
+          const direction = ultraModeEnabled ? "enabled" : "disabled";
+          yield {
+            role: "assistant",
+            content: `⚠️ Ultra Token Saving has been ${direction}. Please start a new chat to continue.`,
+          };
+          return errorPromptLog;
+        }
+      } else {
+        // First message of a new conversation — record the current mode
+        await ShadowChatDb.createSession(sessionId, ultraModeEnabled);
+      }
+
+      const gen = ultraModeEnabled
+        ? tokenOptimizedStreamChat(
+            model,
+            messages,
+            abortController.signal,
+            completionOptions,
+            sessionId,
+            historyLimit,
+          )
+        : model.streamChat(
+            messages,
+            abortController.signal,
+            completionOptions,
+            messageOptions,
+          );
+
       let next = await gen.next();
       while (!next.done) {
         if (abortController.signal.aborted) {

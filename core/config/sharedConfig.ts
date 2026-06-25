@@ -26,6 +26,7 @@ export const sharedConfigSchema = z
 
     // `ui` in `ContinueConfig`
     showSessionTabs: z.boolean(),
+    ultraTokenSaving: z.boolean(),
     codeBlockToolbarPosition: z.enum(["top", "bottom"]),
     fontSize: z.number(),
     codeWrap: z.boolean(),
@@ -152,6 +153,10 @@ export function modifyAnyConfigWithSharedConfig<
 
   if (sharedConfig.showSessionTabs !== undefined) {
     configCopy.ui.showSessionTabs = sharedConfig.showSessionTabs;
+  }
+
+  if (sharedConfig.ultraTokenSaving !== undefined) {
+    configCopy.ui.ultraTokenSaving = sharedConfig.ultraTokenSaving;
   }
 
   if (sharedConfig.continueAfterToolRejection !== undefined) {

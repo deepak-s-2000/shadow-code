@@ -48,6 +48,7 @@ export function UserSettingsSection() {
 
   // TODO defaults are in multiple places, should be consolidated and probably not explicit here
   const showSessionTabs = config.ui?.showSessionTabs ?? false;
+  const ultraTokenSaving = config.ui?.ultraTokenSaving ?? false;
   const continueAfterToolRejection =
     config.ui?.continueAfterToolRejection ?? false;
   const codeWrap = config.ui?.codeWrap ?? false;
@@ -101,6 +102,13 @@ export function UserSettingsSection() {
                   description="Displays tabs above the chat as an alternative way to organize and access your sessions."
                   value={showSessionTabs}
                   onChange={(value) => handleUpdate({ showSessionTabs: value })}
+                />
+                <UserSetting
+                  type="toggle"
+                  title="Ultra Token Saving"
+                  description="Sends only the current message to the LLM and retrieves history on demand, reducing input tokens by up to 97%. Changing this mid-conversation will require starting a new chat."
+                  value={ultraTokenSaving}
+                  onChange={(value) => handleUpdate({ ultraTokenSaving: value })}
                 />
                 <UserSetting
                   type="toggle"
